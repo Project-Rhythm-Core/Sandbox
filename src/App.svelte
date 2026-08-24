@@ -2,12 +2,14 @@
   import { onMount } from "svelte";
   import { createPixiApp } from "./lib/pixi-setup";
   import type { Application } from "pixi.js";
+  import { attachFpsCounter } from "./lib/fps-counter";
 
   let pixiContainer: HTMLDivElement;
   let app: Application;
 
   onMount(async() => {
     app = await createPixiApp(pixiContainer);
+    attachFpsCounter(app);
   });
 </script>
 
