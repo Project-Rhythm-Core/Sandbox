@@ -2,9 +2,10 @@
   "name": "electron-audio-native",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.node",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "napi build --release --output-dir .",
+    "build:debug": "napi build --output-dir ."
   },
   "keywords": [],
   "author": "",
@@ -19,5 +20,6 @@
   "type": "module",
   "devDependencies": {
     "@napi-rs/cli": "^3.8.6"
-  }
+  },
+  "types": "index.d.ts"
 }

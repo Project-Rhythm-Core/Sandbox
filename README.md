@@ -1,47 +1,53 @@
-# Svelte + TS + Vite
+# Project Rhythm Core — Sandbox
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+Banco de pruebas de sincronia audio/video: Svelte 5 + Pixi (WebGPU) en el renderer y un
+modulo nativo de Rust (cpal + symphonia) para el audio, dentro de Electron.
 
-## Recommended IDE Setup
+El audio no pasa por la Web Audio API a proposito: en un juego de ritmo hace falta saber
+con precision de milisegundos que sample esta sonando, y eso lo da el hilo de audio nativo.
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+## Arrancar
 
-## Need an official Svelte framework?
-
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
-
-## Technical considerations
-
-**Why use this over SvelteKit?**
-
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
-
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
-
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+```bash
+pnpm install
+pnpm run build:native     # compila electron-audio-native (necesita cargo)
+pnpm run electron         # build de vite + Electron
 ```
+
+Para iterar en la interfaz, con recarga en caliente:
+
+```bash
+pnpm run dev              # en un terminal: servidor de vite
+pnpm run electron:dev     # en otro
+```
+
+En la ventana: **espacio** reproduce o reinicia, **[** y **]** ajustan el offset de
+calibracion en pasos de 5 ms.
+
+## Como se mide el tiempo
+
+Tres piezas, cada una resolviendo un retardo distinto:
+
+1. **`electron-audio-native`** decodifica el archivo entero a PCM en un worker y abre el
+   dispositivo pidiendo buffers de 256 frames (~5.8 ms). El stream arranca ya, sacando
+   silencio, asi que levantar ALSA (~250 ms) se paga al cargar y no al pulsar play.
+   `isReady()` dice cuando ha entrado en regimen.
+
+2. **El reloj de reproduccion** se ancla al instante en que la muestra 0 es *audible*,
+   no a cuantas muestras se han copiado al buffer. ALSA a traves de PipeWire reporta
+   latencia 0, asi que el modulo la calcula por su cuenta a partir de los frames ya
+   entregados. Despues sigue la deriva del reloj del hardware con una media movil.
+
+3. **`AudioClock`** (renderer) no consulta el nativo en cada frame: estima una vez, con
+   varios sondeos y quedandose con el de menor ida y vuelta, el `performance.now()` en el
+   que la cancion valia 0. A partir de ahi la posicion es una resta local, sin IPC ni
+   jitter. Cada 500 ms recompara en segundo plano y corrige poco a poco.
+
+Medido en este equipo: `play()` suena a los ~5 ms, `restart()` es instantaneo, la latencia
+de salida son ~3.5 ms y el reloj del renderer se desvia menos de 0.1 ms del nativo.
+
+## Calibracion
+
+Ninguna API sabe la latencia real de los altavoces (bluetooth, DSP del amplificador).
+Para eso esta `setOffsetMs()`: positivo si el audio se oye mas tarde de lo que dice el
+reloj. El HUD muestra el valor en vigor.

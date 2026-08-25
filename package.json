@@ -4,12 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "preview": "vite preview",
-  "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
-  "electron": "electron main.cjs --no-sandbox"
-},
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "build:native": "pnpm -C electron-audio-native run build",
+    "electron": "pnpm run build && electron main.cjs --no-sandbox",
+    "electron:dev": "VITE_DEV_SERVER_URL=http://localhost:5173 electron main.cjs --no-sandbox"
+  },
   "devDependencies": {
     "@napi-rs/cli": "^3.8.6",
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
