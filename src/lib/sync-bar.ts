@@ -1,7 +1,16 @@
+// src/lib/sync-bar.ts
 import { Graphics, type Application } from "pixi.js";
-import { invoke } from '@tauri-apps/api/core';
 
 const TOTAL_DURATION_MS = 10000;
+
+declare global {
+  interface Window {
+    electronAPI: {
+      playTestAudio: (path: string) => Promise<void>;
+      getPositionMs: () => Promise<number>;
+    };
+  }
+}
 
 export function attachSyncBar(app: Application): { bar: Graphics; markStart: () => void } {
   const bar = new Graphics();
@@ -17,7 +26,7 @@ export function attachSyncBar(app: Application): { bar: Graphics; markStart: () 
   }
 
   app.ticker.add(async () => {
-    const posMs = await invoke<number>('get_position_ms');
+    const posMs = await window.electronAPI.getPositionMs();
     const screenWidth = app.screen.width;
 
     const progress = Math.min(posMs / TOTAL_DURATION_MS, 1);

@@ -1,5 +1,4 @@
 use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
-
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 pub struct AudioPlayer {
@@ -8,6 +7,8 @@ pub struct AudioPlayer {
     sample_rate: u32,
 }
 
+unsafe impl Send for AudioPlayer {}
+
 impl AudioPlayer {
     pub fn play(samples: Vec<f32>, sample_rate: u32, channels: u16) -> Self {
         let host = cpal::default_host();
@@ -15,7 +16,7 @@ impl AudioPlayer {
 
         let config = cpal::StreamConfig {
             channels,
-            sample_rate,
+            sample_rate: cpal::SampleRate(sample_rate),
             buffer_size: cpal::BufferSize::Default,
         };
 
@@ -51,4 +52,3 @@ impl AudioPlayer {
         (samples as f64 / self.sample_rate as f64) * 1000.0
     }
 }
-

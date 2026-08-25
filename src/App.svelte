@@ -16,7 +16,7 @@
   });
 
   async function startAudio() {
-    await invoke('play_test_audio');
+    await window.electronAPI.playTestAudio('/home/manolo/github/Project-Rhythm-Core/Sandbox/src-tauri/test-audio.mp3');
     markStart();
   }
 </script>
