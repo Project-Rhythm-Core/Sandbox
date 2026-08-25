@@ -5,20 +5,23 @@
   import { invoke } from "@tauri-apps/api/core";
   import { attachSyncBar } from "./lib/sync-bar";
 
+  let markStart: () => void;
   let pixiContainer: HTMLDivElement;
 
   onMount(async() => {
     const app = await createPixiApp(pixiContainer);
     attachFpsCounter(app);
-    attachSyncBar(app);
+    const sync = attachSyncBar(app);
+    markStart = sync.markStart;
   });
 
   async function startAudio() {
     await invoke('play_test_audio');
+    markStart();
   }
 </script>
 
-<div bind:this={pixiContainer} style="width: 100%; heigth: 100vh;"></div>
+<div bind:this={pixiContainer} style="width: 100%; height: 100vh;"></div>
 <button on:click={startAudio} style="position: fixed; top: 40px; left: 10px; z-index: 999">Play</button>
 
 <style>

@@ -10,10 +10,11 @@ struct AppState {
 }
 
 #[tauri::command]
-fn play_test_audio(state: tauri::State<AppState>) {
+async fn play_test_audio(state: tauri::State<'_, AppState>) -> Result<(), String> {
   let (samples, sample_rate, channels) = decoder::decode_file("test-audio.mp3");
   let player = AudioPlayer::play(samples, sample_rate, channels);
   *state.player.lock().unwrap() = Some(player);
+  Ok(())
 }
 
 #[tauri::command]
